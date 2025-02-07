@@ -1,0 +1,46 @@
+def tweakScalar(pubkey, tweakBytes):
+    if len(tweakBytes) != 32:
+        panic("tweak must be exactly 32 bytes")
+
+    tag = sha256("SegwitTweak")             # the hash input is 11 ASCII bytes
+    pkBytes = pubkey.serializeCompressed()  # 33-byte compressed SEC1 format
+
+    # hash the concatenation `tag || tag || pkBytes || tweakBytes`
+    # NOTE: `tag` is intentionally hashed twice, following BIP340
+    tweakHash = sha256(tag, tag, pkBytes, tweakBytes)
+
+    # interpret this scalar as a big-endian integer.
+    #
+    # if this value is greater than the order of the secp256k1 curve,
+    # this conversion MUST fail. Note, however, that this happens with
+    # negligible probability, so it is fine to simply panic in this case
+    # because it will never happen in practice
+    return ScalarFromBigEndianBytes(tweakHash)tweaked_pk = untweaked_pk + tweak_scalar * G
+    # This workflow will build a golang project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+
+name: Go
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.20'
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
